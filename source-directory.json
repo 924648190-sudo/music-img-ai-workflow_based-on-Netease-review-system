@@ -1,0 +1,21 @@
+{
+  "gorillaz": [
+    {
+      "title": "Gorillaz · Jamie Hewlett official biography",
+      "url": "https://jamiehewlett.com/pages/about",
+      "scope": "artist_visual_creator_background_not_recording_style"
+    }
+  ],
+  "our last hope lost hope": [
+    {
+      "title": "Our Last Hope Lost Hope · artist official profile",
+      "url": "https://ourlasthopelosthope.com/",
+      "scope": "artist_background_not_audio_review"
+    },
+    {
+      "title": "Our Last Hope Lost Hope · official album page",
+      "url": "https://ourlasthopelosthope.bandcamp.com/album/our-last-hope-lost-hope",
+      "scope": "artist_album_metadata"
+    }
+  ]
+}
