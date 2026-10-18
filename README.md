@@ -31,6 +31,23 @@ python3 -B build_31.py
 
 直接导入现成 YAML 无需运行构建脚本。
 
+## 使用工作流 Secret 的 ENV 版本
+
+导入 `music-visual-style-3.1-env.yml` 创建独立的 **3.1 ENV** 应用。在 Dify 顶部「环境变量」中配置：
+
+| 变量 | 类型 | 设置 |
+|---|---|---|
+| `MODEL_API_KEY` | Secret | 在各部署环境自行填写；仓库中留空 |
+| `MODEL_API_BASE_URL` | String | 默认 `https://api.deepseek.com`，可改为兼容接口的 HTTPS 基础地址 |
+| `MODEL_TEXT_NAME` | String | 默认 `deepseek-flash`，需支持 JSON 对象输出 |
+| `MODEL_VISION_NAME` | String | 默认 `deepseek-flash`，需同时支持图片输入与 JSON 对象输出 |
+
+ENV 版本通过 HTTP 请求头直接引用 Secret，包含 98 个节点、125 条连接，不使用工作区模型凭据回退。未配置密钥时先返回配置提示，不发起请求。接口必须兼容 OpenAI Chat Completions 的 `messages`、`image_url` 与 `response_format`。
+
+分发的是变量定义，每个环境单独配置密钥。不要把实际密钥提交 Git；从 Dify 导出时不要勾选包含 Secret，并在上传前确认 `MODEL_API_KEY.value` 为空。Dify 允许显式导出 Secret，不能仅依赖变量类型防止泄露。
+
+`env_adapter.py` 与 `build_env.py` 为 ENV 核心源码，`workflow-3.1-env.json` 为结构化定义。重新构建：`python3 -B build_env.py`。HTTP 版本在结果解析节点的 `usage` 输出中保留用量；Dify 原生 LLM Token 面板不再自动汇总这些请求。原版 3.1 文件和分析提示词保持独立。
+
 ## 范围与限制
 
 当前工作流包含 77 个节点、104 条连接；最多保留 20 条有效评论，按需有界补采，不足时记录缺口。资料检索不等于实际音频听辨；外部接口、模型及插件可用性取决于使用者环境。两个 RAG 当前未接入。
