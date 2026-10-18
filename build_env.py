@@ -9,6 +9,49 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 
+# JSON-mode providers occasionally omit a final closing brace even with finish_reason=stop.
+# This bounded repair only closes containers; it never invents field values or retries a paid call.
+REVIEW_REPAIR_SOURCE = '''
+def repair_review_response(body, status_code):
+    try:
+        data = json.loads(body)
+        choice = data["choices"][0]
+        if int(status_code) != 200 or choice.get("finish_reason") != "stop":
+            return body, False
+        content = choice["message"]["content"]
+        try:
+            json.loads(content)
+            return body, False
+        except ValueError:
+            pass
+        stack, quoted, escaped = [], False, False
+        for char in content:
+            if quoted:
+                if escaped:
+                    escaped = False
+                elif char == chr(92):
+                    escaped = True
+                elif char == '"':
+                    quoted = False
+            elif char == '"':
+                quoted = True
+            elif char in "{[":
+                stack.append(char)
+            elif char in "}]":
+                if not stack or stack.pop() != {"}": "{", "]": "["}[char]:
+                    return body, False
+        if quoted or not 0 < len(stack) <= 4:
+            return body, False
+        suffix = "".join({"{": "}", "[": "]"}[char] for char in reversed(stack))
+        repaired = content + suffix
+        if not isinstance(json.loads(repaired), dict):
+            return body, False
+        choice["message"]["content"] = repaired
+        return json.dumps(data, ensure_ascii=False), True
+    except (ValueError, TypeError, KeyError, IndexError, AttributeError):
+        return body, False
+'''
+
 
 def build():
     workflow = json.loads((ROOT / "workflow-3.1.json").read_text())
@@ -114,6 +157,11 @@ def build():
                          if item["key"] == "text"), None)
         parse_source = adapter + "\n\ndef main(body: str, status_code: int) -> dict:\n"
         parse_source += "    return completion_result(body,status_code," + repr(fallback) + ")\n"
+        if identifier == "215":
+            parse_source = adapter + REVIEW_REPAIR_SOURCE + "\n\ndef main(body: str, status_code: int) -> dict:\n"
+            parse_source += "    body, repaired = repair_review_response(body,status_code)\n"
+            parse_source += "    result = completion_result(body,status_code)\n"
+            parse_source += "    if repaired: result['api_status'] = 'ok_repaired_json'\n    return result\n"
         registry[identifier]["data"] = code_data(
             data["title"] + " · 结果解析", parse_source,
             [variable("body", [http_id, "body"]), variable("status_code", [http_id, "status_code"], "number")],
