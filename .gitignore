@@ -1,7 +1,6 @@
-# Local credentials: only the empty example is public.
+# Local credentials and templates are not distributed.
 .env
 .env.*
-!.env.example
 *.pem
 *.key
 credentials*.json
@@ -31,3 +30,12 @@ node_modules/
 .DS_Store
 .idea/
 .vscode/
+
+# Local development support is not part of the core workflow repository.
+/docs/
+/scripts/
+/tests/
+/examples/
+/test_31.py
+/validate_dsl.cjs
+/package.json
